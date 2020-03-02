@@ -40,7 +40,8 @@ async function main(){
         let curDir = `${root}/${paper_id}`
 
         let result = []
-        let scandatas = await dbase.collection('ScanData').find({"HumanIntervention.sPaperId":paper_id}).toArray()
+        console.log(paper_id, typeof paper_id) //5d11c76fe3682d2eef4e7ddc
+        let scandatas = await dbase.collection('ScanData').find({"HumanIntervention.sPaperId": paper_id.toString()}).toArray()
         //console.log(scandatas)1
         let filename_map = {}
         for(let scandata of scandatas){
