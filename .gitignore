@@ -1,0 +1,6 @@
+.idea/
+.vscode/
+node_modules/
+.DS_Store
+mongo_test/images
+mongo_test/images_dir
