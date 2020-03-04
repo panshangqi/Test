@@ -1,6 +1,6 @@
 var MongoClient = require('mongodb').MongoClient;
 //var url = "mongodb://10.200.2.234:27017";//
-let url = 'mongodb://klx_developer:klx_developer@10.200.2.234:27017/admin'
+let url = require('./config')
 let OSSUtil = require('./oss_util')
 let DownloadFile = require('./download_file')
 let fs = require('fs')
@@ -66,6 +66,9 @@ async function main(){
         //console.log(scandatas)1
         let filename_map = {}
         for(let scandata of scandatas){
+            if(!scandata.Correct){
+                continue
+            }
             let originImage = scandata.ImageProcess.sSourceImage
             let page_index = scandata.ImageProcess.page_index
             if(!(typeof page_index == 'number' && page_index >=0 && page_index < pages.length)){
@@ -167,7 +170,7 @@ async function main(){
             }
         }
         console.log(result)
-        if(result.length > 1){
+        if(result.length > 10){
             if(!fs.existsSync(curDir))
             {
                 fs.mkdirSync(curDir)
