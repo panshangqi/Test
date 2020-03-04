@@ -169,8 +169,9 @@ async function main(){
                 // }
             }
         }
-        console.log(result)
-        if(result.length > 10){
+
+        if(result.length > 100){
+            console.log(result)
             if(!fs.existsSync(curDir))
             {
                 fs.mkdirSync(curDir)
