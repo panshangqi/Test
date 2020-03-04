@@ -82,47 +82,53 @@ async function main(){
 async function download_image_run(){
     let download_root = './images' //下载根目录
     console.log('start download')
-    let root = './images_dir'
-    if(fs.existsSync(root)){
-        files = fs.readdirSync(root);
-        for(let file of files){
-            let curPath = root + "/" + file;
-            if(fs.statSync(curPath).isDirectory()){
-                let paper_id = file
-                console.log(`downloading paper_id: ${paper_id}`)
-                let jsonFile = curPath + '/url.json'
-                if(fs.existsSync(jsonFile)){
-                    let buffer = fs.readFileSync(jsonFile)
-                    let result = JSON.parse(buffer.toString())
-                    //console.log(result)
+    let jsonRoot = './images_dir'
+    if(!fs.existsSync(jsonRoot)){
+        console.log(`${jsonRoot} is not exist`)
+        return
+    }
 
-                    let paper_id_download_dir = download_root +'/' + file
-                    if(!fs.existsSync(paper_id_download_dir)){
-                        fs.mkdirSync(paper_id_download_dir)
-                    }
-                    //下载
-                    for(let image_url of result){
-                        let save_path = paper_id_download_dir +'/' + DownloadFile.getUrlName(image_url)
-                        if(!fs.existsSync(save_path)){
-                            await DownloadFile.downloadImage(save_path, image_url)
-                        }
+    files = fs.readdirSync(jsonRoot);
+    console.log(files)
+    for(let file of files){
+        let curPath = jsonRoot + "/" + file;
+        if(!fs.statSync(curPath).isDirectory()) {
+            continue
+        }
+        let paper_id = file
+        console.log(`start download paper_id: ${paper_id}`)
+        let jsonFile = curPath + '/url.json'
+        if(fs.existsSync(jsonFile)){
+            let buffer = fs.readFileSync(jsonFile)
+            let result = JSON.parse(buffer.toString())
+            //console.log(result)
 
-                    }
-                    console.log(`downloaded paper_id: ${paper_id}, count: ${result.length}`)
+            let paper_id_download_dir = download_root +'/' + file
+            if(!fs.existsSync(paper_id_download_dir)){
+                fs.mkdirSync(paper_id_download_dir)
+            }
+            //下载
+            for(let image_url of result){
+                let save_path = paper_id_download_dir +'/' + DownloadFile.getUrlName(image_url)
+                if(!fs.existsSync(save_path)){
+                    await DownloadFile.downloadImage(save_path, image_url)
                 }
 
             }
+            console.log(`downloaded paper_id: ${paper_id}, count: ${result.length}`)
         }
     }
 }
 //main()
 //download_image_run()
 var args = process.argv.splice(2)
-console.log(args)
-if(args.length > 0 && args[0] == 'url'){
+//console.log(args)
+if(args.length > 0 && args[0] == 'json'){
     main()
-}else{
+}else if(args.length>0 && args[0] == 'image'){
     download_image_run()
+}else{
+    console.log('Error params')
 }
 // MongoClient.connect(url, { useNewUrlParser: true,useUnifiedTopology: true }, function(err, db) {
 //     if (err) throw err;

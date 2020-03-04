@@ -21,6 +21,18 @@ console.log(download_url)
 //     console.log({speed, percent})
 //     //self.event.emit('download-progress', {speed, percent})
 // });
+function getImageInfo(url){
+    return new Promise((resolve, reject)=>{
+        request(url, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                //console.log(body) // 请求成功的处理逻辑
+                resolve(body)
+            }else{
+                resolve(null)
+            }
+        });
+    })
+}
 function getUrlName(url){
     let arr = url.split('/')
     return arr[arr.length - 1]
@@ -57,5 +69,6 @@ function delDir(path){
 module.exports = {
     downloadImage,
     getUrlName,
-    delDir
+    delDir,
+    getImageInfo
 }
