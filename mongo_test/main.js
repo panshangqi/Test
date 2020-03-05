@@ -138,6 +138,18 @@ async function main(){
                             //console.log(scoreStr)
                             //方块个数
                             let cnt = 0
+                            //查找是否有0.5
+                            let has_point = false
+                            for(let rect of handwritten_rects){
+                                if(rect.value && rect.value.toString() == '0.5')
+                                {
+                                    has_point = true
+                                    break;
+                                }
+                            }
+                            if(has_point){
+                                handwritten_rects = []
+                            }
                             for(let rect of handwritten_rects){
                                 if(scoreStr[cnt] != 'N'){
                                     let crop = {
@@ -187,8 +199,6 @@ async function main(){
         }
         //break
     }
-
-
     client.close()
 }
 async function download_image_run(){
