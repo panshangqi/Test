@@ -17,7 +17,11 @@ async function main(){
     //console.log(arrs)
     let papers = []
     let maps = {}
+    let test_schools = ['405811','405814','405808','405629','405652','405806']
     for(let item of arrs){
+        if(item.user &&item.user.school_id&& test_schools.indexOf(item.user.school_id.toString())>-1){
+            continue
+        }
         if(item.uid && typeof item.uid == 'number' && item.uid > 0 && item.scanJson){
             if(!maps[item.paper_id])
             {
