@@ -35,7 +35,7 @@ async function main(){
             })
         }
     }
-    //console.log(papers)
+    console.log(papers)
     //paper_id: 5c554120e3682d3386d4e803 //有小题
     //paper_id: 5c4fbf72e3682d6528c3c7ab
 
@@ -198,7 +198,7 @@ async function main(){
             console.log(`downloaded:(${count})`)
         }
 
-        if(count > 30000) {
+        if(count > 500000) {
             break
         }
         //break
