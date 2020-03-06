@@ -39,88 +39,119 @@ async function main(){
     //paper_id: 5c554120e3682d3386d4e803 //有小题
     //paper_id: 5c4fbf72e3682d6528c3c7ab
 
+
     let count = 0
     let root = './images_dir'
-    DownloadFile.delDir(root)
+    //DownloadFile.delDir(root)
     if(!fs.existsSync(root)){
         fs.mkdirSync(root)
     }
+    // 跳过已经下载的paper_id
+    let paperDirs = fs.readdirSync(root);
+    let paperMaps = {}
+    for(let i=0;i<paperDirs.length-1;i++){
+        let paper_id = paperDirs[i]
+        paperMaps[paper_id] = true
+        let jsonFile = root + '/' + paper_id + '/url.json'
+        if(fs.existsSync(jsonFile))
+        {
+            let buffer = fs.readFileSync(jsonFile)
+            let result = JSON.parse(buffer.toString())
+            count += result.length
+        }
+    }
+    console.log('has downloaded count = ' + count)
+    console.log('now continue to download...')
     for(let item of papers){
         let paper_id = item.paper_id
         let uid = item.uid
         let curDir = `${root}/${paper_id}`
-
+        if(paperMaps[paper_id]){
+            continue
+        }
         let result = []
         //console.log(paper_id, typeof paper_id) //5d11c76fe3682d2eef4e7ddc
         if(paper_id.toString() != "5c554120e3682d3386d4e803"){
             //continue
         }
-        let scandatas = await dbase.collection('ScanData').find({
-            "HumanIntervention.sPaperId": paper_id.toString(),
-            "ImageProcess.v2_card_num_id": uid
-        }).toArray()
+
         let anscard = await dbase.collection('Anscard_v2').find({
             "_id": item._id
         }).toArray()
-        if(scandatas.length == 0 || anscard.length == 0){
-            continue;
-        }
-        let pages = anscard[0].scanJson.pages
-        //console.log(pages)
-        //console.log(scandatas)1
-        let filename_map = {}
-        for(let scandata of scandatas){
-            if(!scandata.Correct){
-                continue
+        let pageNum = 0
+        let pageCount = 1000
+        let chars = ['/','-','\\']
+        let stdx = 0
+        while(true){
+            let scandatas = await dbase.collection('ScanData').find({
+                "HumanIntervention.sPaperId": paper_id.toString(),
+                "ImageProcess.v2_card_num_id": uid
+            }).skip(pageNum*pageCount).limit(pageCount).toArray()
+            //console.log('pageNum = '+pageNum)
+            //console.log('scandata.length = ' + scandatas.length)
+            if(scandatas.length == 0 || anscard.length == 0){
+                break;
             }
-            let originImage = scandata.ImageProcess.sSourceImage
-            let page_index = scandata.ImageProcess.page_index
-            if(!(typeof page_index == 'number' && page_index >=0 && page_index < pages.length)){
-                continue
-            }
-            if(!originImage)
-                continue
-            if(originImage && originImage.length > 0){
-                let image_url = OSSUtil.get_uri_of_oss_img(originImage)
-                let imageInfo = await DownloadFile.getImageInfo(image_url+'?x-oss-process=image/info')
-                if(!imageInfo)
-                    continue
-                imageInfo = JSON.parse(imageInfo)
-                let imageWH = {
-                    width: parseInt(imageInfo.ImageWidth.value),
-                    height: parseInt(imageInfo.ImageHeight.value)
-                }
-                //console.log(imageWH)
-                if(isNaN(imageWH.width) || isNaN(imageWH.height)){
-                    continue
-                }
+            pageNum++
 
-                // 每道小题
-                let HumanIntervention = scandata.HumanIntervention
-                let ItemResultDict = HumanIntervention.ItemResultDict
-
-                let subject_items = pages[page_index].subjective_items
-                let model_size = pages[page_index].model_size
-                let rate = imageWH.width / model_size.w
-                let hand_items_id = []
-                //console.log(rate)
-                if( !((imageWH.width > imageWH.height && model_size.w > model_size.h)
-                    || (imageWH.width < imageWH.height && model_size.w < model_size.h))
-                ){
+            let pages = anscard[0].scanJson.pages
+            //console.log(pages)
+            //console.log(scandatas)1
+            let filename_map = {}
+            for(let scandata of scandatas){
+                process.stdout.write(`\r${chars[stdx++]}`)
+                stdx = stdx % 3
+                if(!scandata.Correct){
                     continue
                 }
-                for(let item_id in ItemResultDict){
-                    //console.log(item_id)
-                    let iScoreArray = ItemResultDict[item_id].iScoreArray
-                    if(!iScoreArray){
+                let originImage = scandata.ImageProcess.sSourceImage
+                let page_index = scandata.ImageProcess.page_index
+                if(!(typeof page_index == 'number' && page_index >=0 && page_index < pages.length)){
+                    continue
+                }
+                if(!originImage)
+                    continue
+                if(originImage && originImage.length > 0){
+                    let image_url = OSSUtil.get_uri_of_oss_img(originImage)
+                    let imageInfo = await DownloadFile.getImageInfo(image_url+'?x-oss-process=image/info')
+                    if(!imageInfo)
+                        continue
+                    imageInfo = JSON.parse(imageInfo)
+                    let imageWH = {
+                        width: parseInt(imageInfo.ImageWidth.value),
+                        height: parseInt(imageInfo.ImageHeight.value)
+                    }
+                    //console.log(imageWH)
+                    if(isNaN(imageWH.width) || isNaN(imageWH.height)){
                         continue
                     }
-                    // if(iScoreArray.length == 1){// 没有小题
-                    //     //console.log(`无小题:(item_id:${item_id})`)
-                    //     let score = iScoreArray[0]
-                    //
-                    // }
-                    // else if(iScoreArray.length > 1){ //有小题
+
+                    // 每道小题
+                    let HumanIntervention = scandata.HumanIntervention
+                    let ItemResultDict = HumanIntervention.ItemResultDict
+
+                    let subject_items = pages[page_index].subjective_items
+                    let model_size = pages[page_index].model_size
+                    let rate = imageWH.width / model_size.w
+                    let hand_items_id = []
+                    //console.log(rate)
+                    if( !((imageWH.width > imageWH.height && model_size.w > model_size.h)
+                        || (imageWH.width < imageWH.height && model_size.w < model_size.h))
+                    ){
+                        continue
+                    }
+                    for(let item_id in ItemResultDict){
+                        //console.log(item_id)
+                        let iScoreArray = ItemResultDict[item_id].iScoreArray
+                        if(!iScoreArray){
+                            continue
+                        }
+                        // if(iScoreArray.length == 1){// 没有小题
+                        //     //console.log(`无小题:(item_id:${item_id})`)
+                        //     let score = iScoreArray[0]
+                        //
+                        // }
+                        // else if(iScoreArray.length > 1){ //有小题
                         //console.log(`有小题:(item_id:${item_id})`)
                         for(let score of iScoreArray){
                             if(!score || score == -1 || score.toString().indexOf('.') > -1){
@@ -172,19 +203,21 @@ async function main(){
                                 cnt++
                             }
                         }
-                    //}
-                }
+                        //}
+                    }
 
-                // let image_name = DownloadFile.getUrlName(image_url)
-                // if(!filename_map[image_name]){
-                //     filename_map[image_name] = true
-                //
-                //     //console.log(`downloaded:(${count})`, image_url)
-                //     result.push(image_url)
-                //     //await DownloadFile.downloadImage(image_url)
-                // }
+                    // let image_name = DownloadFile.getUrlName(image_url)
+                    // if(!filename_map[image_name]){
+                    //     filename_map[image_name] = true
+                    //
+                    //     //console.log(`downloaded:(${count})`, image_url)
+                    //     result.push(image_url)
+                    //     //await DownloadFile.downloadImage(image_url)
+                    // }
+                }
             }
         }
+
 
         if(result.length > 100){
             console.log(result)
