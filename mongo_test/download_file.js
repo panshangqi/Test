@@ -34,8 +34,27 @@ function getImageInfo(url){
     })
 }
 function getUrlName(url){
+    let pos = url.indexOf('?')
+    if(pos>-1){
+        url = url.substring(0, pos)
+    }
     let arr = url.split('/')
     return arr[arr.length - 1]
+}
+function getClipName(url){
+
+    let pos = url.indexOf('.jpg?')
+    let start = 0;
+    for(let i=pos; i>=0;i--){
+        if(url[i] == '/'){
+            start = i + 1
+            break
+        }
+    }
+    let name = url.substring(start, url.length)
+    name = name.replace('.jpg?x-oss-process=image/crop,','_')
+    return name +'.jpg'
+
 }
 function downloadImage(save_path, url){
     return new Promise((resolve, reject)=>{
@@ -70,5 +89,6 @@ module.exports = {
     downloadImage,
     getUrlName,
     delDir,
-    getImageInfo
+    getImageInfo,
+    getClipName
 }

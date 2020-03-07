@@ -267,6 +267,7 @@ async function main(){
             fs.writeFileSync(jsonPath, JSON.stringify(result));
             console.log(`downloaded write json:(${count}), filename: ${jsonPath}`)
             clip_count++
+            result = []
             //console.log('>>>>>111')
         }
         if(count > 500000) {
@@ -278,6 +279,26 @@ async function main(){
 }
 async function download_image_run(){
     let download_root = './images' //下载根目录
+    //初始化目录0-9
+    if(!fs.existsSync(download_root)){
+        fs.mkdirSync(download_root)
+    }
+    let all_count = 0
+    //查询是否被下载过记录一下
+    let download_map = {}
+    for(let i=0;i<10;i++){
+        let numDir = download_root + '/' + i;
+        if(!fs.existsSync(numDir)){
+            fs.mkdirSync(numDir)
+        }
+        let imgs = fs.readdirSync(numDir)
+        for(let img of imgs){
+
+            //download_map[img]=1
+           all_count++
+        }
+    }
+
     console.log('start download')
     let jsonRoot = './images_dir'
     if(!fs.existsSync(jsonRoot)){
@@ -286,34 +307,68 @@ async function download_image_run(){
     }
 
     files = fs.readdirSync(jsonRoot);
-    console.log(files)
+    //console.log(files)
+    console.log(`${all_count} has downloaded!`)
     for(let file of files){
         let curPath = jsonRoot + "/" + file;
         if(!fs.statSync(curPath).isDirectory()) {
+
             continue
         }
         let paper_id = file
-        console.log(`start download paper_id: ${paper_id}`)
-        let jsonFile = curPath + '/url.json'
-        if(fs.existsSync(jsonFile)){
-            let buffer = fs.readFileSync(jsonFile)
-            let result = JSON.parse(buffer.toString())
-            //console.log(result)
+        //console.log(`start download paper_id: ${paper_id}`)
+        //遍历里面所有的json
 
-            let paper_id_download_dir = download_root +'/' + file
-            if(!fs.existsSync(paper_id_download_dir)){
-                fs.mkdirSync(paper_id_download_dir)
-            }
-            //下载
-            for(let image_url of result){
-                let save_path = paper_id_download_dir +'/' + DownloadFile.getUrlName(image_url)
-                if(!fs.existsSync(save_path)){
-                    await DownloadFile.downloadImage(save_path, image_url)
+        let jsonFiles = fs.readdirSync(curPath)
+        for(let jsonfile of jsonFiles){
+            let jsonPath = curPath + '/' + jsonfile;
+            if(fs.existsSync(jsonPath)){
+                let buffer = fs.readFileSync(jsonPath)
+                let result = JSON.parse(buffer.toString())
+                //console.log(result)
+                /*
+                let paper_id_download_dir = download_root +'/' + file
+                if(!fs.existsSync(paper_id_download_dir)){
+                    fs.mkdirSync(paper_id_download_dir)
+                }
+                //下载
+                for(let image_url of result){
+                    let save_path = paper_id_download_dir +'/' + DownloadFile.getUrlName(image_url)
+                    if(!fs.existsSync(save_path)){
+                        await DownloadFile.downloadImage(save_path, image_url)
+                    }
+
+                }
+                console.log(`downloaded paper_id: ${paper_id}, count: ${result.length}`)
+                */
+                //下载
+                for(let item of result){
+
+                    if(typeof item.number == 'number')
+                        item.number = item.number.toString()
+                    if(['0','1','2','3','4','5','6','7','8','9'].indexOf(item.number) == -1)
+                    {
+
+                        continue
+                    }
+                    let image_name = DownloadFile.getClipName(item.crop_img_url)
+                    //console.log(image_name)
+                    //continue
+                    let save_path = download_root + '/' + item.number +'/' + image_name
+                    if(!fs.existsSync(save_path)){
+                        await DownloadFile.downloadImage(save_path, item.crop_img_url)
+                        all_count++
+                        console.log(`download count: ${all_count}, downloaded path: ${save_path}`)
+                    }else{
+
+                        console.log(`${item.crop_img_url} has downloaded`)
+                    }
+
                 }
 
             }
-            console.log(`downloaded paper_id: ${paper_id}, count: ${result.length}`)
         }
+
     }
 }
 //main()
@@ -322,7 +377,7 @@ var args = process.argv.splice(2)
 //console.log(args)
 if(args.length > 0 && args[0] == 'json'){
     main()
-}else if(args.length>0 && args[0] == 'image'){
+}else if(args.length>0 && args[0] == 'download'){
     download_image_run()
 }else{
     console.log('Error params')
