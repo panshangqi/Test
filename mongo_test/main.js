@@ -53,13 +53,19 @@ async function main(){
     for(let i=0;i<paperDirs.length-1;i++){
         let paper_id = paperDirs[i]
         paperMaps[paper_id] = true
-        let jsonFile = root + '/' + paper_id + '/url.json'
-        if(fs.existsSync(jsonFile))
-        {
-            let buffer = fs.readFileSync(jsonFile)
-            let result = JSON.parse(buffer.toString())
-            count += result.length
+        //遍历所有的json文件
+        let jsonDir = root + '/' + paper_id
+        let jsonFiles = fs.readdirSync(jsonDir)
+        for(let jsonfile of jsonFiles){
+            let jsonFile = jsonDir + '/' + jsonfile
+            if(fs.existsSync(jsonFile))
+            {
+                let buffer = fs.readFileSync(jsonFile)
+                let result = JSON.parse(buffer.toString())
+                count += result.length
+            }
         }
+
     }
     console.log('has downloaded count = ' + count)
     console.log('now continue to download...')
