@@ -1,10 +1,11 @@
 var MongoClient = require('mongodb').MongoClient;
 //var url = "mongodb://10.200.2.234:27017";//
-let url = require('./config')
+let config = require('./config')
 let OSSUtil = require('./oss_util')
 let DownloadFile = require('./download_file')
 let fs = require('fs')
 let path = require('path')
+let url = config.url
 async function main(){
     const client = new MongoClient(url,{ useUnifiedTopology: true,useNewUrlParser : true })
     await client.connect()
@@ -69,7 +70,7 @@ async function main(){
         if(paperMaps[paper_id]){
             continue
         }
-        let result = []
+
         //console.log(paper_id, typeof paper_id) //5d11c76fe3682d2eef4e7ddc
         if(paper_id.toString() != "5c554120e3682d3386d4e803"){
             //continue
@@ -79,10 +80,12 @@ async function main(){
             "_id": item._id
         }).toArray()
         let pageNum = 0
-        let pageCount = 1000
+        let pageCount = config.page_count
         let chars = ['/','-','\\']
         let stdx = 0
+        let clip_count = 0 //查询没个分页，则保存一次json
         while(true){
+            let result = []
             let scandatas = await dbase.collection('ScanData').find({
                 "HumanIntervention.sPaperId": paper_id.toString(),
                 "ImageProcess.v2_card_num_id": uid
@@ -98,6 +101,7 @@ async function main(){
             //console.log(pages)
             //console.log(scandatas)1
             let filename_map = {}
+            let imageInfo = null
             for(let scandata of scandatas){
                 process.stdout.write(`\r${chars[stdx++]}`)
                 stdx = stdx % 3
@@ -113,10 +117,16 @@ async function main(){
                     continue
                 if(originImage && originImage.length > 0){
                     let image_url = OSSUtil.get_uri_of_oss_img(originImage)
-                    let imageInfo = await DownloadFile.getImageInfo(image_url+'?x-oss-process=image/info')
                     if(!imageInfo)
+                    {
+                        imageInfo = await DownloadFile.getImageInfo(image_url+'?x-oss-process=image/info')
+                        imageInfo = JSON.parse(imageInfo)
+                    }
+                    if(!imageInfo){
                         continue
-                    imageInfo = JSON.parse(imageInfo)
+                    }
+                    //console.log(imageInfo)
+
                     let imageWH = {
                         width: parseInt(imageInfo.ImageWidth.value),
                         height: parseInt(imageInfo.ImageHeight.value)
@@ -216,21 +226,21 @@ async function main(){
                     // }
                 }
             }
-        }
+            if(clip_count > 0 || result.length > config.min_cnt){
+                console.log(result)
+                if(!fs.existsSync(curDir))
+                {
+                    fs.mkdirSync(curDir)
+                }
+                count += result.length
+                console.log(`${paper_id}(count): ${result.length} `)
+                let jsonPath = curDir + '/url_'+clip_count+'.json'
+                fs.writeFileSync(jsonPath, JSON.stringify(result));
+                console.log(`downloaded write json:(${count}), filename: ${jsonPath}`)
 
-
-        if(result.length > 100){
-            console.log(result)
-            if(!fs.existsSync(curDir))
-            {
-                fs.mkdirSync(curDir)
+                clip_count++
             }
-            count += result.length
-            console.log(`${paper_id}(count): ${result.length} `)
-            fs.writeFileSync(curDir + '/url.json', JSON.stringify(result));
-            console.log(`downloaded:(${count})`)
         }
-
         if(count > 500000) {
             break
         }
