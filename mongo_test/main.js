@@ -90,8 +90,9 @@ async function main(){
         let chars = ['/','-','\\']
         let stdx = 0
         let clip_count = 0 //查询没个分页，则保存一次json
+        let result = []
         while(true){
-            let result = []
+
             let scandatas = await dbase.collection('ScanData').find({
                 "HumanIntervention.sPaperId": paper_id.toString(),
                 "ImageProcess.v2_card_num_id": uid
@@ -214,9 +215,28 @@ async function main(){
                                         crop_img_url: crop_img,
                                         number: scoreStr[cnt]
                                     })
+                                    //save filejson
+                                    if(result.length > 0 && result.length % config.max_cnt == 0){
+                                        console.log(result)
+                                        if(!fs.existsSync(curDir))
+                                        {
+                                            fs.mkdirSync(curDir)
+                                        }
+                                        count += result.length
+                                        console.log(`${paper_id}(count): ${result.length} `)
+                                        let jsonPath = curDir + '/url_'+clip_count+'.json'
+                                        fs.writeFileSync(jsonPath, JSON.stringify(result));
+                                        console.log(`downloaded write json:(${count}), filename: ${jsonPath}`)
+                                        clip_count++
+                                        result = []
+                                        //console.log('>>>>>')
+                                    }
                                 }
 
                                 cnt++
+
+
+
                             }
                         }
                         //}
@@ -232,20 +252,22 @@ async function main(){
                     // }
                 }
             }
-            if(clip_count > 0 || result.length > config.min_cnt){
-                console.log(result)
-                if(!fs.existsSync(curDir))
-                {
-                    fs.mkdirSync(curDir)
-                }
-                count += result.length
-                console.log(`${paper_id}(count): ${result.length} `)
-                let jsonPath = curDir + '/url_'+clip_count+'.json'
-                fs.writeFileSync(jsonPath, JSON.stringify(result));
-                console.log(`downloaded write json:(${count}), filename: ${jsonPath}`)
 
-                clip_count++
+        }
+        //save filejson
+        if(result.length > config.min_cnt){
+            console.log(result)
+            if(!fs.existsSync(curDir))
+            {
+                fs.mkdirSync(curDir)
             }
+            count += result.length
+            console.log(`${paper_id}(count): ${result.length} `)
+            let jsonPath = curDir + '/url_'+clip_count+'.json'
+            fs.writeFileSync(jsonPath, JSON.stringify(result));
+            console.log(`downloaded write json:(${count}), filename: ${jsonPath}`)
+            clip_count++
+            //console.log('>>>>>111')
         }
         if(count > 500000) {
             break
